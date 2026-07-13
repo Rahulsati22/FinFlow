@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: finflow
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/finflow_db
+    username: finflow_user
+    password: finflow_pass
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # NEVER use 'update' in production. We use 'validate' because Flyway will handle our schemas.
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: 8081
