@@ -1,6 +1,12 @@
 spring:
   application:
     name: finflow
+    security:
+      jwt:
+        secretkey: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+        expiration: 900000 #15 minutes in milliseconds
+        refresh-token:
+          expiration: 604800000 #7 days in milliseconds
 
   datasource:
     url: jdbc:postgresql://localhost:5433/finflow_db
@@ -23,3 +29,4 @@ spring:
 
 server:
   port: 8081
+
