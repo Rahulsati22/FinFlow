@@ -47,4 +47,12 @@ public class RefreshTokenService {
     public RefreshTokenEntity findByToken(String token){
         return refreshTokenRepository.findByToken(token).orElseThrow(()->new IllegalArgumentException("Invalid refresh token"));
     }
+
+    public void deleteByToken(String token){
+        System.out.println(token + " deleted");
+        refreshTokenRepository.findByToken(token)
+                .ifPresent(refreshTokenRepository::delete);
+    }
 }
+
+

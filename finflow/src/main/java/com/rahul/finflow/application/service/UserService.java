@@ -42,7 +42,7 @@ public class UserService {
 
     //take the email
     //find if email exist
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         // 1. Fetch user by email
         UserEntity user = userRepository.findByEmail(request.getEmail())
