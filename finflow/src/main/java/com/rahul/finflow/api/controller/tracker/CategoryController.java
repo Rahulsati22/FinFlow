@@ -2,7 +2,7 @@ package com.rahul.finflow.api.controller.tracker;
 
 import com.rahul.finflow.api.dto.tracker.CategoryRequest;
 import com.rahul.finflow.api.dto.tracker.CategoryResponse;
-// import com.rahul.finflow.core.service.tracker.CategoryService; // We will create this next!
+import com.rahul.finflow.core.service.tracker.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,21 +18,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryController {
 
+    private final CategoryService categoryService;
 
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getUserCategories(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-         return null; // Placeholder until service is built
+        List<CategoryResponse> categories = categoryService.getUserCategories(userDetails.getUsername());
+        return ResponseEntity.ok(categories);
     }
 
-
-    //particular user is requesting to create this category->not system default
     @PostMapping
     public ResponseEntity<CategoryResponse> createCustomCategory(
             @Valid @RequestBody CategoryRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return null; 
+        CategoryResponse response = categoryService.createCategory(request, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

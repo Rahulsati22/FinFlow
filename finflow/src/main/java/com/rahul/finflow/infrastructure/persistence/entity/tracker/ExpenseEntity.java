@@ -3,6 +3,9 @@ package com.rahul.finflow.infrastructure.persistence.entity.tracker;
 
 import com.rahul.finflow.infrastructure.persistence.entity.UserEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -51,4 +54,5 @@ public class ExpenseEntity {
     @CreatedDate
     @Column(name="created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
 }
