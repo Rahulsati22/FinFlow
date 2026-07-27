@@ -37,8 +37,13 @@ public class ExpenseEntity {
     private CategoryEntity category;
 
 
-    @Column(name="group_id")
-    private UUID groupId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private GroupEntity group;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "split_type")
+    private SplitType splitType;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
@@ -54,5 +59,4 @@ public class ExpenseEntity {
     @CreatedDate
     @Column(name="created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
 }
