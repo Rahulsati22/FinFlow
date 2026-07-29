@@ -1,5 +1,6 @@
 package com.rahul.finflow.core.service;
 
+import com.rahul.finflow.api.dto.group.GroupBalanceResponse;
 import com.rahul.finflow.api.dto.group.SharedExpenseRequest;
 import com.rahul.finflow.infrastructure.persistence.entity.tracker.CategoryEntity;
 import com.rahul.finflow.infrastructure.persistence.entity.tracker.ExpenseEntity;
@@ -16,8 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -95,5 +95,48 @@ public class GroupExpenseService {
 
         // Save all generated debts to the database in one batch
         debtLedgerRepository.saveAll(newDebts);
+    }
+
+
+    // Add this method inside your GroupExpenseService class
+
+    @Transactional(readOnly = true)
+    public List<GroupBalanceResponse> calculateGroupBalances(UUID groupId) {
+
+        // 1. Fetch all ledgers (debts) for this specific group
+        List<DebtLedgerEntity> ledgers = debtLedgerRepository.findByGroupId(groupId);
+
+        // 2. Map to hold the running balance for each user
+        Map<UserEntity, BigDecimal> userBalances = new HashMap<>();
+
+        // 3. Crunch the numbers
+        for (DebtLedgerEntity ledger : ledgers) {
+            UserEntity lender = ledger.getLender();
+            UserEntity borrower = ledger.getBorrower();
+            BigDecimal amount = ledger.getAmount();
+
+            // Lender gets money back (+ balance)
+            userBalances.put(lender, userBalances.getOrDefault(lender, BigDecimal.ZERO).add(amount));
+
+            // Borrower owes money (- balance)
+            userBalances.put(borrower, userBalances.getOrDefault(borrower, BigDecimal.ZERO).subtract(amount));
+        }
+
+        // 4. Convert the Map into a clean List of DTOs for the API response
+        List<GroupBalanceResponse> responseList = new ArrayList<>();
+
+        for (Map.Entry<UserEntity, BigDecimal> entry : userBalances.entrySet()) {
+            UserEntity user = entry.getKey();
+            BigDecimal netBalance = entry.getValue();
+
+            responseList.add(new GroupBalanceResponse(
+                    user.getId(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    netBalance
+            ));
+        }
+
+        return responseList;
     }
 }
