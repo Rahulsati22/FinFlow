@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record SharedExpenseRequest(
@@ -30,5 +31,8 @@ public record SharedExpenseRequest(
         SplitType splitType,
 
         @NotNull(message = "Expense date is required")
-        LocalDate expenseDate
+        LocalDate expenseDate,
+
+        // <-- ADD THIS FIELD: Optional for EQUAL, Required for EXACT/PERCENTAGE
+        List<SplitDetail> splits
 ) {}
