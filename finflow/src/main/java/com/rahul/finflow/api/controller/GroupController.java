@@ -1,8 +1,5 @@
 package com.rahul.finflow.api.controller;
-import com.rahul.finflow.api.dto.group.CreateGroupRequest;
-import com.rahul.finflow.api.dto.group.GroupBalanceResponse;
-import com.rahul.finflow.api.dto.group.GroupResponse;
-import com.rahul.finflow.api.dto.group.SharedExpenseRequest;
+import com.rahul.finflow.api.dto.group.*;
 import com.rahul.finflow.core.service.GroupExpenseService;
 import com.rahul.finflow.core.service.GroupService;
 import jakarta.validation.Valid;
@@ -47,5 +44,28 @@ public class GroupController {
             @PathVariable UUID groupId) {
         List<GroupBalanceResponse> balances = groupExpenseService.calculateGroupBalances(groupId);
         return ResponseEntity.ok(balances);
+    }
+
+
+    // Add this inside GroupController
+
+    @GetMapping("/{groupId}/simplify-debts")
+    public ResponseEntity<List<SimplifiedDebtResponse>> getSimplifiedDebts(
+            @PathVariable UUID groupId) {
+
+        List<SimplifiedDebtResponse> simplifiedDebts = groupExpenseService.simplifyGroupDebts(groupId);
+
+        return ResponseEntity.ok(simplifiedDebts);
+    }
+
+    // Add this to your existing GroupController class
+
+    @PostMapping("/settlements")
+    public ResponseEntity<String> settleDebt(
+            @Valid @RequestBody SettlementRequest request) {
+
+        groupExpenseService.settleDebt(request);
+
+        return ResponseEntity.ok("Debt settled successfully.");
     }
 }

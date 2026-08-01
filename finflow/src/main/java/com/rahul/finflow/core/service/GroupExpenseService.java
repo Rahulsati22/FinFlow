@@ -1,8 +1,6 @@
 package com.rahul.finflow.core.service;
 
-import com.rahul.finflow.api.dto.group.GroupBalanceResponse;
-import com.rahul.finflow.api.dto.group.SharedExpenseRequest;
-import com.rahul.finflow.api.dto.group.SplitDetail;
+import com.rahul.finflow.api.dto.group.*;
 import com.rahul.finflow.infrastructure.persistence.entity.tracker.CategoryEntity;
 import com.rahul.finflow.infrastructure.persistence.entity.tracker.ExpenseEntity;
 import com.rahul.finflow.infrastructure.persistence.entity.UserEntity;
@@ -178,7 +176,7 @@ public class GroupExpenseService {
     }
 
 
-    // Add this method inside your GroupExpenseService class
+
 
     @Transactional(readOnly = true)
     public List<GroupBalanceResponse> calculateGroupBalances(UUID groupId) {
@@ -219,4 +217,108 @@ public class GroupExpenseService {
 
         return responseList;
     }
+
+
+
+    //writing the algorithm that will return the simplified debts
+    @Transactional(readOnly = true)
+    public List<SimplifiedDebtResponse> simplifyGroupDebts(UUID groupId) {
+        // 1. Fetch all raw ledgers (debts) for this group
+        List<DebtLedgerEntity> ledgers = debtLedgerRepository.findByGroupId(groupId);
+
+        // 2. Calculate net balance for each user
+        Map<UserEntity, BigDecimal> balances = new HashMap<>();
+
+        for (DebtLedgerEntity ledger : ledgers) {
+            UserEntity lender = ledger.getLender();
+            UserEntity borrower = ledger.getBorrower();
+            BigDecimal amount = ledger.getAmount();
+
+            balances.put(lender, balances.getOrDefault(lender, BigDecimal.ZERO).add(amount));
+            balances.put(borrower, balances.getOrDefault(borrower, BigDecimal.ZERO).subtract(amount));
+        }
+
+        // 3. Separate users into Debtors (negative balance) and Creditors (positive balance)
+        List<UserEntity> creditors = new ArrayList<>();
+        List<UserEntity> debtors = new ArrayList<>();
+
+        for (Map.Entry<UserEntity, BigDecimal> entry : balances.entrySet()) {
+            if (entry.getValue().compareTo(BigDecimal.ZERO) > 0) {
+                creditors.add(entry.getKey());
+            } else if (entry.getValue().compareTo(BigDecimal.ZERO) < 0) {
+                debtors.add(entry.getKey());
+            }
+        }
+
+        // 4. The Algorithm: Greedily match debtors to creditors
+        List<SimplifiedDebtResponse> simplifiedDebts = new ArrayList<>();
+
+        int i = 0; // Creditor pointer
+        int j = 0; // Debtor pointer
+
+        while (i < creditors.size() && j < debtors.size()) {
+            UserEntity creditor = creditors.get(i);
+            UserEntity debtor = debtors.get(j);
+
+            BigDecimal creditAmount = balances.get(creditor);
+            BigDecimal debtAmount = balances.get(debtor).abs(); // Convert negative to positive for comparison
+
+            // Find the minimum of the two amounts
+            BigDecimal settledAmount = creditAmount.min(debtAmount);
+
+            // Record this simplified transaction
+            simplifiedDebts.add(new SimplifiedDebtResponse(
+                    creditor.getId(),
+                    creditor.getFirstName(),
+                    debtor.getId(),
+                    debtor.getFirstName(),
+                    settledAmount
+            ));
+
+            // Update their running balances
+            balances.put(creditor, creditAmount.subtract(settledAmount));
+            balances.put(debtor, balances.get(debtor).add(settledAmount)); // Adding to negative moves it toward zero
+
+            // Move the pointers if someone's balance is fully settled
+            if (balances.get(creditor).compareTo(BigDecimal.ZERO) == 0) {
+                i++;
+            }
+            if (balances.get(debtor).compareTo(BigDecimal.ZERO) == 0) {
+                j++;
+            }
+        }
+
+        return simplifiedDebts;
+    }
+
+
+    // Add this inside GroupExpenseService
+
+    @Transactional
+    public void settleDebt(SettlementRequest request) {
+
+        GroupEntity group = groupRepository.findById(request.groupId())
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        UserEntity payer = userRepository.findById(request.payerId())
+                .orElseThrow(() -> new RuntimeException("Payer not found"));
+
+        UserEntity receiver = userRepository.findById(request.receiverId())
+                .orElseThrow(() -> new RuntimeException("Receiver not found"));
+
+        // To settle a debt, we create a reverse entry.
+        // The person paying the cash becomes the "lender" for this specific transaction,
+        // which perfectly zeroes out their negative balance when the balances are recalculated.
+        DebtLedgerEntity settlement = DebtLedgerEntity.builder()
+                .lender(payer)
+                .borrower(receiver)
+                .group(group)
+                .amount(request.amount())
+                .build();
+
+        debtLedgerRepository.save(settlement);
+    }
+
+
+
 }
